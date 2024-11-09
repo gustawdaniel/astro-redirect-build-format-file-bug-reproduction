@@ -98,3 +98,5 @@ and you will see that hrefs are incorrect.
 <a href="/">
 <a href="/pl">
 ```
+
+Attached issue: https://github.com/withastro/astro/issues/12407
