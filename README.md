@@ -1,54 +1,100 @@
-# Astro Starter Kit: Basics
+# Reproduction of bug with url for build.format = file
 
-```sh
-npm create astro@latest -- --template basics
+In docs https://docs.astro.build/en/reference/configuration-reference/#buildformat
+
+there are mentioned 3 build.format options:
+
+- Default `directory`
+- `file`
+- `preserve`
+
+We will skip `preserve` as it is not relevant to this issue. Let's focus on `file` and `directory`.
+
+This project contains a demo app with urls generated for multilingual blog.
+
+When I am on english version of blog post I want to see
+
+```html
+<ul>
+    <li style="font-weight:normal"><a href="/posts/en/post-1"> en </a></li>
+    <li style="font-weight:bold"><a href="/posts/pl/post-1"> pl </a></li>
+</ul>
 ```
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/basics)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/basics/devcontainer.json)
+It is desired behavior and work only in `directory` mode.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+But when I set `build.format = file` in astro.config.mjs I get
 
-![just-the-basics](https://github.com/withastro/astro/assets/2244813/a0a5533c-a856-4198-8470-2d67b1d7c554)
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── components/
-│   │   └── Card.astro
-│   ├── layouts/
-│   │   └── Layout.astro
-│   └── pages/
-│       └── index.astro
-└── package.json
+```html
+<ul>
+    <li style="font-weight:bold"><a href="/"> en </a></li>
+    <li style="font-weight:normal"><a href="/pl"> pl </a></li>
+</ul>
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+so I'm effectively loosing direct links to translated texts.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+# How to reproduce:
 
-Any static assets, like images, can be placed in the `public/` directory.
+With config:
 
-## 🧞 Commands
+```js
+export default defineConfig({
+    i18n: {
+        defaultLocale,
+        // @ts-ignore
+        locales: locales
+    },
+    build:{
+        format: 'directory'
+    }
+});
+```
 
-All commands are run from the root of the project, from a terminal:
+execute
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+```bash
+pnpm build
+```
 
-## 👀 Want to learn more?
+then check lines 18-19 of
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+```bash
+npx prettier dist/posts/en/post-1/index.html | cat -n
+```
+
+it will present full correct hrefs.
+
+```html
+<a href="/posts/en/post-1">
+<a href="/posts/pl/post-1">
+```
+
+Now change config to:
+
+```js
+export default defineConfig({
+    i18n: {
+        defaultLocale,
+        // @ts-ignore
+        locales: locales
+    },
+    build:{
+        format: 'file'
+    }
+});
+```
+
+and again execute
+
+```bash
+pnpm build
+npx prettier dist/posts/en/post-1.html | cat -n
+```
+
+and you will see that hrefs are incorrect.
+
+```html
+<a href="/">
+<a href="/pl">
+```

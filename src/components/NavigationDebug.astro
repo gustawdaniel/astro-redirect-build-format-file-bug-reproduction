@@ -1,0 +1,56 @@
+---
+import {getCollection, getEntry} from "astro:content";
+import {locales} from '../locales';
+import {getRelativeLocaleUrl} from "astro:i18n";
+const locale = Astro.currentLocale ?? 'en';
+const currentPathWithLang = Astro.url.pathname;
+import {stripLang} from "../helpers/i18n/stripLang";
+import {fixBlogLocale} from "../helpers/i18n/fixBlogLocale";
+
+const currentPath = stripLang(currentPathWithLang)
+
+let translatedPosts: { slug: string }[] = []
+let entry: undefined | { data: { canonicalName: string } } = undefined
+
+function getPostId(path: string): string {
+    path = path.replace('/posts/', '');
+    return path.replace(/\/$/, '');
+}
+
+if (currentPath.includes('posts/')) {
+    entry = await getEntry('blog', getPostId(currentPath));
+    translatedPosts = await getCollection('blog',
+        (post) => entry && post.data.canonicalName === entry.data.canonicalName
+    );
+}
+---
+
+<a href={getRelativeLocaleUrl(locale, '/')}>HOME -> {getRelativeLocaleUrl(locale, '/')}</a>
+
+<p>currentPathWithLang = {currentPathWithLang}</p>
+<p>currentPath = {currentPath}</p>
+
+<p>{translatedPosts.map(p => p.slug)}</p>
+
+<ul>
+    {locales.map(lang => (
+            <li style={{
+                'font-weight': lang === locale ? 'bold' : 'normal'
+            }}>
+        <a href={
+            fixBlogLocale(
+                getRelativeLocaleUrl(
+                    lang,
+                    currentPath
+                ),
+                lang,
+                translatedPosts.map(p => p.slug)
+            )
+        }>
+
+    {lang}
+
+        </a>
+            </li>
+    ))}
+</ul>
